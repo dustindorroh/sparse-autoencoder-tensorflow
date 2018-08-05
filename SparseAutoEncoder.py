@@ -57,8 +57,8 @@ class FeedforwardSparseAutoEncoder(object):
         return self.activation(tf.matmul(X, self.W1) + self.b1)
 
     def decode(self,H):
-        self.W2 = self.init_weights((self.n_hidden,self.n_input))
-        self.b2 = self.init_weights((1,self.n_input))
+        self.W2 = tf.Variable(self.init_weights((self.n_hidden,self.n_input)))
+        self.b2 = tf.Variable(self.init_weights((1,self.n_input)))
         return self.activation(tf.matmul(H, self.W2) + self.b2)
 
     def kl_divergence(self, rho, rho_hat):
