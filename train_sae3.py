@@ -40,7 +40,10 @@ def main(n_iters,n_hidden,n_inputs,input_model_dirs,export_dir,sparsity):
     images = sae.W1.eval(sae.sess)
     #images = images.transpose()
     print 'images.shape {}'.format(images.shape)
-    visualizeW1(images,n_inputs**.5,10,n_iters,file_name=export_dir)
+    try:
+        visualizeW1(images,int(n_inputs**.5),10,n_iters,file_name=export_dir+'_')
+    except ValueError:
+        visualizeW1(images,int(n_hidden**.5),10,n_iters,file_name=export_dir+'_')
 
     tf.saved_model.simple_save(sae.sess
                               ,export_dir

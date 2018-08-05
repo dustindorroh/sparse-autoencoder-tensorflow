@@ -33,7 +33,10 @@ def main(n_iters,n_hidden,n_inputs,input_model_dir,export_dir,sparsity):
     # Please check trained4000.png for example
     images=sae.W1.eval(sae.sess)
     images=images.transpose()
-    visualizeW1(images,n_inputs**.5,10,n_iters,file_name=export_dir)
+    try:
+        visualizeW1(images,int(n_inputs**.5),10,n_iters,file_name=export_dir+'_')
+    except ValueError:
+        visualizeW1(images,int(n_hidden**.5),10,n_iters,file_name=export_dir+'_')
 
     tf.saved_model.simple_save(sae.sess
                               ,export_dir
