@@ -18,73 +18,76 @@ def parse_args():
     parser.add_argument("-n","--n-iters", help="Number of iterations to run", type=int,default=4000)
     return parser.parse_args()
 
+def kl_divergence(rho, rho_hat):
+    return rho * tf.log(rho) - rho * tf.log(rho_hat) + (1 - rho) * tf.log(1 - rho) - (1 - rho) * tf.log(1 - rho_hat)
 
 
-class FeedforwardSparseAutoEncoder():
+class FeedforwardSparseAutoEncoder(object):
     '''
       This is the implementation of the sparse autoencoder for https://web.stanford.edu/class/cs294a/sparseAutoencoder_2011new.pdf
 
     '''
-    def __init__(self, n_input, n_hidden,  rho=0.01, alpha=0.0001, beta=3, activation=tf.nn.sigmoid, optimizer=tf.train.AdamOptimizer()):
-        self.n_input=n_input
-        self.n_hidden=n_hidden
-        self.rho=rho  # sparse parameters
-        self.alpha =alpha
-        self.beta=beta
-        self.optimizer=optimizer
+    def __init__(self, n_input, n_hidden, rho=0.01, alpha=0.0001, beta=3, activation=tf.nn.sigmoid, learning_rate=0.1):
+        self.n_input = n_input
+        self.n_hidden = n_hidden
+        self.rho = rho  # sparse parameters
+        self.alpha = alpha
+        self.beta = beta
         self.activation = activation
 
-        self.W1=self.init_weights((self.n_input,self.n_hidden))
-        self.b1=self.init_weights((1,self.n_hidden))
+        # Setup weight initializer
+        self.init_weights = tf.contrib.layers.xavier_initializer()
+        
+        self.inputs = tf.placeholder('float',shape=[None,self.n_input])
 
-        self.W2=self.init_weights((self.n_hidden,self.n_input))
-        self.b2= self.init_weights((1,self.n_input))
-        init = tf.global_variables_initializer()
+        self.hidden = self.encode(self.inputs)
+        
+        self.outputs = self.decode(self.hidden)
+        
+        self.loss = self.loss_func()
+
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+
         self.sess = tf.Session()
-        self.sess.run(init)
-
-    def init_weights(self,shape):
-        r= math.sqrt(6) / math.sqrt(self.n_input + self.n_hidden + 1)
-        weights = tf.random_normal(shape, stddev=r)
-        return tf.Variable(weights)
 
     def encode(self,X):
-        l=tf.matmul(X, self.W1)+self.b1
-        return self.activation(l)
+        # Create weights and bias
+        self.W1 = tf.Variable(self.init_weights((self.n_input,self.n_hidden)))
+        self.b1 = tf.Variable(self.init_weights((1,self.n_hidden)))
+        return self.activation(tf.matmul(X, self.W1) + self.b1)
 
     def decode(self,H):
-        l=tf.matmul(H,self.W2)+self.b2
-        return self.activation(l)
-
+        self.W2 = self.init_weights((self.n_hidden,self.n_input))
+        self.b2 = self.init_weights((1,self.n_input))
+        return self.activation(tf.matmul(H, self.W2) + self.b2)
 
     def kl_divergence(self, rho, rho_hat):
         return rho * tf.log(rho) - rho * tf.log(rho_hat) + (1 - rho) * tf.log(1 - rho) - (1 - rho) * tf.log(1 - rho_hat)
 
-    def regularization(self,weights):
-        return tf.nn.l2_loss(weights)
+    def loss_func(self):
+        # Build cost function
+        # Average hidden layer over all data points in X, 
+        # Page 14 in https://web.stanford.edu/class/cs294a/sparseAutoencoder_2011new.pdf
+        rho_hat = tf.reduce_mean(self.hidden,axis=0)
+        kl = self.kl_divergence(self.rho, rho_hat)
 
-    def loss(self,X):
-        H = self.encode(X)
-        rho_hat=tf.reduce_mean(H,axis=0)   #Average hidden layer over all data points in X, Page 14 in https://web.stanford.edu/class/cs294a/sparseAutoencoder_2011new.pdf
-        kl=self.kl_divergence(self.rho, rho_hat)
-        X_=self.decode(H)
-        diff=X-X_
-        cost= 0.5*tf.reduce_mean(tf.reduce_sum(diff**2,axis=1))  \
+        # cost
+        #cost = 0.5 * tf.reduce_sum(tf.pow(tf.subtract(self.inputs - self.outputs), 2.0)) + self.beta*tf.reduce_sum(kl)
+        cost = 0.5*tf.reduce_mean(tf.reduce_sum((self.inputs - self.outputs)**2,axis=1))  \
               +0.5*self.alpha*(tf.nn.l2_loss(self.W1) + tf.nn.l2_loss(self.W2))   \
               +self.beta*tf.reduce_sum(kl)
         return cost
 
     def training(self,training_data,  n_iter=100):
+        
+        opt = self.optimizer.minimize(self.loss)
+        init = tf.global_variables_initializer()
+        self.sess.run(init)
 
-        X=tf.placeholder("float",shape=[None,training_data.shape[1]])
-        var_list=[self.W1,self.W2]
-        loss_=self.loss(X)
-        opt=self.optimizer.minimize(loss_,var_list=var_list)
-        for iter in range(n_iter):
-            cost,_=self.sess.run((loss_,opt),feed_dict={X:training_data})
-            if iter%10==0:
-                print("Iter:"+str(iter)+"/"+str(n_iter)+"  loss:  {}".format(cost))
-
+        for i in xrange(n_iter):
+            cost,_= self.sess.run((self.loss,opt),feed_dict={ self.inputs: training_data})
+            if i % 10 == 0:
+                print('Iter {}/{}  loss: {}'.format(i,n_iter,cost))
 
 def visualizeW1(images, vis_patch_side, hid_patch_side, iter, file_name="trained_"):
     """ Visual all images in one pane"""
@@ -112,14 +115,12 @@ def main(n_iters):
     from tensorflow.examples.tutorials.mnist import input_data
     mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
 
-    n_inputs=784
-    n_hidden=100
-    start=0
-    lens=1000
-    learning_rate=0.1
+    n_inputs = 784
+    n_hidden = 100
+    start = 0
+    lens = 1000
 
-    optimizer= tf.train.GradientDescentOptimizer(learning_rate)
-    sae=   FeedforwardSparseAutoEncoder(n_inputs,n_hidden,optimizer=optimizer)
+    sae = FeedforwardSparseAutoEncoder(n_inputs,n_hidden)
     sae.training(mnist.train.images[start:start+lens],n_iter=n_iters)
 
     # After training the model, an image of the representations (W1) will be saved
