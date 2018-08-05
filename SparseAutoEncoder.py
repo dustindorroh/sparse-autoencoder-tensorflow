@@ -15,12 +15,10 @@ import argparse
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-n","--n-iters", help="Number of iterations to run", type=int,default=4000)
+    parser.add_argument("--n-iters", help="Number of iterations to run", type=int,default=4000)
+    parser.add_argument("--n-hidden", help="Dimension of hidden layer", type=int,default=100)
+    parser.add_argument("--export-dir", help="Directory to save the model to", default='output')
     return parser.parse_args()
-
-def kl_divergence(rho, rho_hat):
-    return rho * tf.log(rho) - rho * tf.log(rho_hat) + (1 - rho) * tf.log(1 - rho) - (1 - rho) * tf.log(1 - rho_hat)
-
 
 class FeedforwardSparseAutoEncoder(object):
     '''
@@ -38,6 +36,7 @@ class FeedforwardSparseAutoEncoder(object):
         # Setup weight initializer
         self.init_weights = tf.contrib.layers.xavier_initializer()
         
+        self.global_step = tf.Variable(0, name = 'global_step', trainable = False)
         self.inputs = tf.placeholder('float',shape=[None,self.n_input])
 
         self.hidden = self.encode(self.inputs)
@@ -47,7 +46,7 @@ class FeedforwardSparseAutoEncoder(object):
         self.loss = self.loss_func()
 
         self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
-
+        #self.optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
         self.sess = tf.Session()
 
     def encode(self,X):
@@ -72,15 +71,12 @@ class FeedforwardSparseAutoEncoder(object):
         kl = self.kl_divergence(self.rho, rho_hat)
 
         # cost
-        #cost = 0.5 * tf.reduce_sum(tf.pow(tf.subtract(self.inputs - self.outputs), 2.0)) + self.beta*tf.reduce_sum(kl)
-        cost = 0.5*tf.reduce_mean(tf.reduce_sum((self.inputs - self.outputs)**2,axis=1))  \
-              +0.5*self.alpha*(tf.nn.l2_loss(self.W1) + tf.nn.l2_loss(self.W2))   \
-              +self.beta*tf.reduce_sum(kl)
+        cost = 0.5 * tf.reduce_sum(tf.pow(tf.subtract(self.inputs,self.outputs), 2.0)) + self.beta*tf.reduce_sum(kl)
         return cost
 
     def training(self,training_data,  n_iter=100):
-        
-        opt = self.optimizer.minimize(self.loss)
+        var_list = [self.W1,self.W2]
+        opt = self.optimizer.minimize(self.loss,global_step=self.global_step,var_list=var_list)
         init = tf.global_variables_initializer()
         self.sess.run(init)
 
@@ -110,13 +106,33 @@ def visualizeW1(images, vis_patch_side, hid_patch_side, iter, file_name="trained
     print("Written into "+ file)
     matplotlib.pyplot.close()
 
+def run_saved_model(inputs,export_dir):
+    with tf.Session(graph=tf.Graph()) as sess:
+        model = tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING], export_dir)
+        model_signature = model.signature_def[tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY]
+        input_name = model_signature.inputs[tf.saved_model.signature_constants.CLASSIFY_INPUTS].name
+        
+        hidden_name = model_signature.outputs['hidden'].name
+        reconstruction_name = model_signature.outputs['reconstruction'].name
+        
+        graph = tf.get_default_graph()
+        ops = graph.get_operations()
+        
+        input_tensor = graph.get_tensor_by_name(input_name)
+        hidden_tensor = graph.get_tensor_by_name(hidden_name)
+        reconstruction_tensor = graph.get_tensor_by_name(reconstruction_name)
 
-def main(n_iters):
+        reconstruction_result,hidden_result = sess.run((reconstruction_tensor,hidden_tensor)
+                                            , feed_dict = { input_tensor: inputs})
+        
+    return reconstruction_result,hidden_result
+
+
+def main(n_iters,n_hidden,export_dir):
     from tensorflow.examples.tutorials.mnist import input_data
     mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
 
     n_inputs = 784
-    n_hidden = 100
     start = 0
     lens = 1000
 
@@ -128,6 +144,11 @@ def main(n_iters):
     images=sae.W1.eval(sae.sess)
     images=images.transpose()
     visualizeW1(images,28,10,n_iters)
+
+    tf.saved_model.simple_save(sae.sess
+                              ,export_dir
+                              ,inputs={'inputs': sae.inputs}
+                              ,outputs={'hidden': sae.hidden,'reconstruction': sae.outputs})
 
 
 if __name__ == "__main__":
