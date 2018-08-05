@@ -11,8 +11,12 @@
 import tensorflow as tf
 import matplotlib.pyplot
 import math
+import argparse
 
-
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-n","--n-iters", help="Number of iterations to run", type=int,default=4000)
+    return parser.parse_args()
 
 
 
@@ -104,7 +108,7 @@ def visualizeW1(images, vis_patch_side, hid_patch_side, iter, file_name="trained
     matplotlib.pyplot.close()
 
 
-def main():
+def main(n_iters):
     from tensorflow.examples.tutorials.mnist import input_data
     mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
 
@@ -116,7 +120,6 @@ def main():
 
     optimizer= tf.train.GradientDescentOptimizer(learning_rate)
     sae=   FeedforwardSparseAutoEncoder(n_inputs,n_hidden,optimizer=optimizer)
-    n_iters=4000
     sae.training(mnist.train.images[start:start+lens],n_iter=n_iters)
 
     # After training the model, an image of the representations (W1) will be saved
@@ -126,6 +129,8 @@ def main():
     visualizeW1(images,28,10,n_iters)
 
 
+if __name__ == "__main__":
+    args = parse_args()
+    print(args)
+    main(**vars(args))
 
-if __name__=='__main__':
-    main()
