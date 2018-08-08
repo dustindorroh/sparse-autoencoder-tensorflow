@@ -29,12 +29,12 @@ python train_sae2.py --n-iters 4000 --n-hidden 256 --n-inputs 1024 --input-model
 python train_sae3.py --n-iters 4000 --n-hidden 64  --n-inputs 256  --input-model-dirs sae1_${sparsity} sae2_${sparsity} --export-dir sae3_${sparsity} --sparsity ${sparsity}
 done | tee output.log
 ```
- ![sparsity 0.01](images/sae3_0.01_4000.png)
- ![sparsity 0.02](images/sae3_0.02_4000.png)
- ![sparsity 0.03](images/sae3_0.03_4000.png)
- ![sparsity 0.04](images/sae3_0.04_4000.png)
- ![sparsity 0.05](images/sae3_0.05_4000.png)
- ![sparsity 0.10](images/sae3_0.1_4000.png)
- ![sparsity 0.15](images/sae3_0.15_4000.png)
- ![sparsity 0.20](images/sae3_0.2_4000.png)
+ ![sparsity 0.01](images/sae2_0.01_4000.png)
+ ![sparsity 0.02](images/sae2_0.02_4000.png)
+ ![sparsity 0.03](images/sae2_0.03_4000.png)
+ ![sparsity 0.04](images/sae2_0.04_4000.png)
+ ![sparsity 0.05](images/sae2_0.05_4000.png)
+ ![sparsity 0.10](images/sae2_0.1_4000.png)
+ ![sparsity 0.15](images/sae2_0.15_4000.png)
+ ![sparsity 0.20](images/sae2_0.2_4000.png)
 
