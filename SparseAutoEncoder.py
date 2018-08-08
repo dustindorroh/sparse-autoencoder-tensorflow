@@ -95,7 +95,8 @@ def visualizeW1(images, vis_patch_side, hid_patch_side, iter, file_name="trained
         """ Add row of weights as an image to the plot """
 
         image = axis.imshow(images[index, :].reshape(vis_patch_side, vis_patch_side),
-                            cmap=matplotlib.pyplot.cm.gray, interpolation='nearest')
+                            vmin=images.min(), vmax=images.max(),
+                            cmap='jet', interpolation='nearest')
         axis.set_frame_on(False)
         axis.set_axis_off()
         index += 1

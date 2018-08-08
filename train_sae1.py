@@ -29,12 +29,13 @@ def main(n_iters,n_hidden,export_dir,sparsity):
     # After training the model, an image of the representations (W1) will be saved
     # Please check trained4000.png for example
     images=sae.W1.eval(sae.sess)
+    print 'W1.shape {}, min {}, max {}'.format(images.shape,images.min(),images.max())
     images=images.transpose()
     
     try:
-        visualizeW1(images,int(n_inputs**.5),10,n_iters,file_name=export_dir+'_')
+        visualizeW1(images,int(n_inputs**.5),5,n_iters,file_name=export_dir+'_')
     except ValueError:
-        visualizeW1(images,int(n_hidden**.5),10,n_iters,file_name=export_dir+'_')
+        visualizeW1(images,int(n_hidden**.5),5,n_iters,file_name=export_dir+'_')
         
     tf.saved_model.simple_save(sae.sess
                               ,export_dir
