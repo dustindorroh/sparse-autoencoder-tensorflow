@@ -32,9 +32,6 @@ done | tee output.log
  ![sparsity 0.01](images/sae2_0.01_4000.png)
  ![sparsity 0.02](images/sae2_0.02_4000.png)
  ![sparsity 0.03](images/sae2_0.03_4000.png)
- ![sparsity 0.04](images/sae2_0.04_4000.png)
- ![sparsity 0.05](images/sae2_0.05_4000.png)
- ![sparsity 0.10](images/sae2_0.1_4000.png)
- ![sparsity 0.15](images/sae2_0.15_4000.png)
- ![sparsity 0.20](images/sae2_0.2_4000.png)
 
+# Vertex Feature Extraction notes
+![Vertex Feature Extraction]('Vertex Feature Extraction.ipynb')
