@@ -1,7 +1,8 @@
+import numpy as np
 import pymesh
 mesh = pymesh.load_mesh('bunny.obj')
-mesh = pymesh.load_mesh('square_2D.obj')
-mesh = pymesh.load_mesh('cube.obj')
+#mesh = pymesh.load_mesh('square_2D.obj')
+#mesh = pymesh.load_mesh('cube.obj')
 
 mesh.enable_connectivity()
 
@@ -27,9 +28,9 @@ The following vertex attributes are predifined:
 mesh.add_attribute('vertex_normal')
 #mesh.add_attribute('vertex_volume')
 #mesh.add_attribute('vertex_area')
-#mesh.add_attribute('vertex_laplacian')
-#mesh.add_attribute('vertex_mean_curvature')
-#mesh.add_attribute('vertex_gaussian_curvature')
+mesh.add_attribute('vertex_laplacian')
+mesh.add_attribute('vertex_mean_curvature')
+mesh.add_attribute('vertex_gaussian_curvature')
 mesh.add_attribute('vertex_index')
 #mesh.add_attribute('vertex_valance')
 #mesh.add_attribute('vertex_dihedral_angle')
@@ -50,9 +51,20 @@ n_jk = vertex_normal[neighbor_vertices_indexes]
 v_jk = mesh.vertices[neighbor_vertices_indexes]
 
 
-distances = np.abs((v - v_jk).dot(n))/(np.linalg.norm(n)
-thetas = np.arccos(np.dot(n_jk_all,n)/(np.linalg.norm(n)*np.linalg.norm(n_jk_all,axis=1)))
+distances = np.abs((v - v_jk).dot(n))/np.linalg.norm(n)
+thetas = np.arccos(np.dot(n_jk,n)/(np.linalg.norm(n)*np.linalg.norm(n_jk,axis=1)))
 thetas = np.arccos(np.dot(n_jk,n))
 
 np.rad2deg(thetas)
+#############
+# Calculate principal curvatures from gaussian and mean curvatures
+# http://mathworld.wolfram.com/PrincipalCurvatures.html
+
+gaussian_curvature = mesh.get_attribute('vertex_gaussian_curvature')
+mean_curvature = mesh.get_attribute('vertex_mean_curvature')
+
+principal_curvature_1 = gaussian_curvature + (gaussian_curvature**2 - mean_curvature)**.5
+principal_curvature_2 = gaussian_curvature - (gaussian_curvature**2 - mean_curvature)**.5
+
+
 
