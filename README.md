@@ -34,4 +34,4 @@ done | tee output.log
  ![sparsity 0.03](images/sae2_0.03_4000.png)
 
 # Vertex Feature Extraction notes
-![Vertex Feature Extraction]('Vertex Feature Extraction.ipynb')
+See Vertex Feature Extraction.ipynb
